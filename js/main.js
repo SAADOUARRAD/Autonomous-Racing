@@ -47,19 +47,23 @@ function draw() {
 
     // Caméra dynamique multi-modes (Overview, Follow leader, Chase cockpit)
     push();
+    let isCinemaMode = typeof CINEMA_MODE !== 'undefined' && CINEMA_MODE;
+
+    // Centrage et zoom général
+    translate(width / 2, (isCinemaMode ? height / 2 : height * 0.44));
+    scale(typeof ZOOM_LEVEL !== 'undefined' ? ZOOM_LEVEL : 1.0);
+
     if (CAMERA_MODE === 'follow' && bestCar && !bestCar.dead) {
-        let targetX = width / 2 - bestCar.pos.x;
-        let targetY = height / 2 - bestCar.pos.y;
-        translate(targetX, targetY);
+        translate(-bestCar.pos.x, -bestCar.pos.y);
     } else if (CAMERA_MODE === 'chase' && bestCar && !bestCar.dead) {
         let heading = (typeof bestCar.vel.heading === 'function') ? bestCar.vel.heading() : Math.atan2(bestCar.vel.y, bestCar.vel.x);
-        translate(width / 2, height * 0.62);
         rotate(-heading - Math.PI / 2);
         translate(-bestCar.pos.x, -bestCar.pos.y);
     } else if (FOCUS_BEST_CAR && bestCar && !bestCar.dead) {
-        let targetX = width / 2 - bestCar.pos.x;
-        let targetY = height / 2 - bestCar.pos.y;
-        translate(targetX, targetY);
+        translate(-bestCar.pos.x, -bestCar.pos.y);
+    } else {
+        // En mode Overview : remettre le repère à l'origine après le zoom centré
+        translate(-width / 2, -(isCinemaMode ? height / 2 : height * 0.44));
     }
 
     // 0a. Environnement futuriste (ville, bâtiments, pluie de fond, ponts, néons)
@@ -1016,6 +1020,12 @@ function initDynamicUI() {
         }
     });
 
+    // 13b. Boutons de Zoom et Mode Cinéma
+    link('btnZoomIn', 'click', () => changeZoom(0.15));
+    link('btnZoomOut', 'click', () => changeZoom(-0.15));
+    link('btnZoomReset', 'click', () => { ZOOM_LEVEL = 1.0; updateZoomDisplay(); });
+    link('btnToggleCinema', 'click', () => toggleCinemaMode());
+
     // 14. Initialisation du Modal Pédagogique Interactif
     initEducationalModal();
 
@@ -1166,7 +1176,48 @@ function keyPressed() {
         saveChampionModel();
     } else if (key === 'l' || key === 'L') {
         loadChampionModel();
+    } else if (key === 'c' || key === 'C') {
+        toggleCinemaMode();
+    } else if (key === '+' || key === '=') {
+        changeZoom(0.15);
+    } else if (key === '-' || key === '_') {
+        changeZoom(-0.15);
+    } else if (key === '0') {
+        ZOOM_LEVEL = 1.0;
+        updateZoomDisplay();
     }
+}
+
+/**
+ * Gestion du zoom à la molette de la souris
+ */
+function mouseWheel(event) {
+    if (document.activeElement?.matches('input, select, textarea')) return;
+    let delta = event.delta > 0 ? -0.1 : 0.1;
+    changeZoom(delta);
+    return false; // Empêche le défilement standard de la page
+}
+
+function changeZoom(delta) {
+    ZOOM_LEVEL = constrain(ZOOM_LEVEL + delta, 0.4, 3.0);
+    updateZoomDisplay();
+}
+
+function updateZoomDisplay() {
+    const el = document.getElementById('zoomValDisplay');
+    if (el) el.innerText = `${Math.round(ZOOM_LEVEL * 100)}%`;
+}
+
+/**
+ * Bascule le mode Cinéma (Masquage / Affichage de tous les panneaux pour dégager la vue de la voiture)
+ */
+function toggleCinemaMode() {
+    CINEMA_MODE = !CINEMA_MODE;
+    const ids = ['ai-config-panel', 'ai-brain-panel', 'ai-bottom-dock', 'lab-header', 'quick-view-toolbar'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('cinema-hidden', CINEMA_MODE);
+    });
 }
 
 /**

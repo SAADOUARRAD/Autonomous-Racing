@@ -1328,3 +1328,21 @@ input[type="range"]::-webkit-slider-thumb:hover {
         right: 14px;
     }
 }
+
+/* ===================================================================== */
+/* 8. MODE CINÉMA (Vue dégagée sans aucun panneau pour vidéo) */
+/* ===================================================================== */
+.cinema-hidden {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transform: translateY(20px) !important;
+    transition: opacity 0.35s ease, transform 0.35s ease !important;
+}
+
+#lab-header.cinema-hidden {
+    transform: translateY(-100%) !important;
+}
+
+#quick-view-toolbar.cinema-hidden {
+    transform: translateX(-50%) translateY(-100%) !important;
+}
